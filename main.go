@@ -2,14 +2,19 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"io/ioutil"
 	"net/http"
 	"os"
+
+	"golang.org/x/net/html"
 )
+
+const baseURL = "https://www.basketball-reference.com"
 
 // NBAPlayer is an NBA Player
 type NBAPlayer struct {
@@ -101,32 +106,77 @@ func searchPlayer(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "templates/search.html")
 	case "POST":
 		player := r.FormValue("player")
-		// resp, err := http.Get("localhost:8000/players")
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
+		resp, err := http.Get("localhost:8000/players")
+		if err != nil {
+			fmt.Println(err)
+		}
 
-		// defer resp.Body.Close()
-		// body, err := ioutil.ReadAll(resp.Body)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println(err)
+		}
 
-		// var players []NBAPlayer
-		// err = json.Unmarshal(body, &players)
+		var players []NBAPlayer
+		err = json.Unmarshal(body, &players)
 		fmt.Fprintf(w, string(player))
 
 	}
 }
 
+func getHTML(month string, day string, year string) []byte {
+	var url = baseURL + "/boxscores/?month=" + month + "&day=" + day + "&year=" + year
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return body
+}
+
+func getBoxScoreHTML() {
+
+	var boxScoreHTML = getHTML("1", "28", "2020")
+
+	tokenizer := html.NewTokenizer(bytes.NewReader(boxScoreHTML))
+
+	/**
+	 *<body>  <div id="wrap">  <div id="content">  <div class="game_summaries">
+	 */
+	for {
+		tokenType := tokenizer.Next()
+		if tokenType == html.ErrorToken {
+			err := tokenizer.Err()
+			if err == io.EOF {
+				break
+			}
+		} else if tokenType == html.StartTagToken {
+			token := tokenizer.Token()
+
+			if token.Data == "body" {
+
+			}
+		}
+	}
+}
+
 func main() {
 
-	playerData := readCSVFile("nbastats2018-2019.csv")
+	// playerData := readCSVFile("nbastats2018-2019.csv")
 
-	http.HandleFunc("/", index)
-	http.HandleFunc("/players", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, playerData)
-	})
-	http.HandleFunc("/searchPlayer", searchPlayer)
-	log.Fatal(http.ListenAndServe(":8000", nil))
+	// r := mux.NewRouter()
+	// r.HandleFunc("/", index)
+	// r.HandleFunc("/players", func(w http.ResponseWriter, r *http.Request) {
+	// 	fmt.Fprintf(w, playerData)
+	// })
+	// http.ListenAndServe(":8000", r)
+	getBoxScoreHTML()
 }
