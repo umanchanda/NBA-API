@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"os"
 
-	"golang.org/x/net/html"
+	"github.com/PuerkitoBio/goquery"
 )
 
 const baseURL = "https://www.basketball-reference.com"
@@ -45,6 +45,32 @@ type NBAPlayer struct {
 	USG      string
 	BPM      string
 	VORP     string
+}
+
+// BoxScore is a box score
+type BoxScore struct {
+	AwayTeam string
+	HomeTeam string
+	AwayScore string
+	HomeScore string
+	AwayQuarterbyQuarterScore
+	HomeQuarterbyQuarterScore
+}
+
+// AwayQuarterbyQuarterScore is the quarter score for the away team
+type AwayQuarterbyQuarterScore struct {
+	FirstQuarter string
+	SecondQuarter string
+	ThirdQuarter string
+	FourthQuarter string
+}
+
+// HomeQuarterbyQuarterScore is the quarter score for the home team
+type HomeQuarterbyQuarterScore struct {
+	FirstQuarter string
+	SecondQuarter string
+	ThirdQuarter string
+	FourthQuarter string
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -142,30 +168,20 @@ func getHTML(month string, day string, year string) []byte {
 	return body
 }
 
-func getBoxScoreHTML() {
+func getBoxScore() string {
 
-	var boxScoreHTML = getHTML("1", "28", "2020")
+	var boxScoreHTML = getHTML("2", "6", "2020")
 
-	tokenizer := html.NewTokenizer(bytes.NewReader(boxScoreHTML))
+	p := bytes.NewReader(boxScoreHTML)
+	doc, _ := goquery.NewDocumentFromReader(p)
 
-	/**
-	 *<body>  <div id="wrap">  <div id="content">  <div class="game_summaries">
-	 */
-	for {
-		tokenType := tokenizer.Next()
-		if tokenType == html.ErrorToken {
-			err := tokenizer.Err()
-			if err == io.EOF {
-				break
-			}
-		} else if tokenType == html.StartTagToken {
-			token := tokenizer.Token()
-
-			if token.Data == "body" {
-
-			}
-		}
+	gameSummary, err := doc.Find(".game_summaries").Html()
+	if err != nil {
+		fmt.Println(err)
 	}
+
+	return gameSummary
+	
 }
 
 func main() {
@@ -178,5 +194,5 @@ func main() {
 	// 	fmt.Fprintf(w, playerData)
 	// })
 	// http.ListenAndServe(":8000", r)
-	getBoxScoreHTML()
+	fmt.Println(getBoxScore())
 }
