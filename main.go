@@ -49,8 +49,8 @@ type NBAPlayer struct {
 
 // BoxScore is a box score
 type BoxScore struct {
-	AwayTeam string
-	HomeTeam string
+	AwayTeam  string
+	HomeTeam  string
 	AwayScore string
 	HomeScore string
 	AwayQuarterbyQuarterScore
@@ -59,17 +59,17 @@ type BoxScore struct {
 
 // AwayQuarterbyQuarterScore is the quarter score for the away team
 type AwayQuarterbyQuarterScore struct {
-	FirstQuarter string
+	FirstQuarter  string
 	SecondQuarter string
-	ThirdQuarter string
+	ThirdQuarter  string
 	FourthQuarter string
 }
 
 // HomeQuarterbyQuarterScore is the quarter score for the home team
 type HomeQuarterbyQuarterScore struct {
-	FirstQuarter string
+	FirstQuarter  string
 	SecondQuarter string
-	ThirdQuarter string
+	ThirdQuarter  string
 	FourthQuarter string
 }
 
@@ -168,7 +168,7 @@ func getHTML(month string, day string, year string) []byte {
 	return body
 }
 
-func getBoxScore() string {
+func getBoxScoreHTML() string {
 
 	var boxScoreHTML = getHTML("2", "6", "2020")
 
@@ -181,7 +181,6 @@ func getBoxScore() string {
 	}
 
 	return gameSummary
-	
 }
 
 func main() {
@@ -194,5 +193,5 @@ func main() {
 	// 	fmt.Fprintf(w, playerData)
 	// })
 	// http.ListenAndServe(":8000", r)
-	fmt.Println(getBoxScore())
+	fmt.Println(getBoxScoreHTML())
 }
