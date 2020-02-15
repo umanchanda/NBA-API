@@ -47,26 +47,27 @@ type NBAPlayer struct {
 	VORP     string
 }
 
-// BoxScore is a box score
-type BoxScore struct {
+// TeamBoxScore is a team box score
+type TeamBoxScore struct {
 	AwayTeam  string
 	HomeTeam  string
 	AwayScore string
 	HomeScore string
-	AwayQuarterbyQuarterScore
-	HomeQuarterbyQuarterScore
+	Status    string
+	AwayQuarterScore
+	HomeQuarterScore
 }
 
-// AwayQuarterbyQuarterScore is the quarter score for the away team
-type AwayQuarterbyQuarterScore struct {
+// AwayQuarterScore is the quarter score for the away team
+type AwayQuarterScore struct {
 	FirstQuarter  string
 	SecondQuarter string
 	ThirdQuarter  string
 	FourthQuarter string
 }
 
-// HomeQuarterbyQuarterScore is the quarter score for the home team
-type HomeQuarterbyQuarterScore struct {
+// HomeQuarterScore is the quarter score for the home team
+type HomeQuarterScore struct {
 	FirstQuarter  string
 	SecondQuarter string
 	ThirdQuarter  string
@@ -183,6 +184,27 @@ func getBoxScoreHTML() string {
 	return gameSummary
 }
 
+func extractGameSummary(gameSummary string) {
+	gs := []byte(gameSummary)
+	p := bytes.NewReader(gs)
+	doc, _ := goquery.NewDocumentFromReader(p)
+
+	doc.Find(".game_summary").Each(func(i int, s *goquery.Selection) {
+		s.Find("table").Each(func(i int, s *goquery.Selection) {
+			s.Find(".winner").Each(func(i int, s *goquery.Selection) {
+				s.Find("td").Each(func(i int, s *goquery.Selection) {
+					fmt.Println(s.Find("a").Text())
+				})
+			})
+			s.Find(".loser").Each(func(i int, s *goquery.Selection) {
+				s.Find("td").Each(func(i int, s *goquery.Selection) {
+					fmt.Println(s.Find("a").Text())
+				})
+			})
+		})
+	})
+}
+
 func main() {
 
 	// playerData := readCSVFile("nbastats2018-2019.csv")
@@ -193,5 +215,6 @@ func main() {
 	// 	fmt.Fprintf(w, playerData)
 	// })
 	// http.ListenAndServe(":8000", r)
-	fmt.Println(getBoxScoreHTML())
+	gameSummary := getBoxScoreHTML()
+	extractGameSummary(gameSummary)
 }
