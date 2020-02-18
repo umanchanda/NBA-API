@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gorilla/mux"
 )
 
 const baseURL = "https://www.basketball-reference.com"
@@ -169,36 +170,22 @@ func getHTML(month string, day string, year string) []byte {
 	return body
 }
 
-func getBoxScoreHTML() string {
-
-	var boxScoreHTML = getHTML("2", "6", "2020")
+func extractGameSummary() {
+	var boxScoreHTML = getHTML("2", "11", "2020")
 
 	p := bytes.NewReader(boxScoreHTML)
 	doc, _ := goquery.NewDocumentFromReader(p)
 
-	gameSummary, err := doc.Find(".game_summaries").Html()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	return gameSummary
-}
-
-func extractGameSummary(gameSummary string) {
-	gs := []byte(gameSummary)
-	p := bytes.NewReader(gs)
-	doc, _ := goquery.NewDocumentFromReader(p)
-
-	doc.Find(".game_summary").Each(func(i int, s *goquery.Selection) {
-		s.Find("table").Each(func(i int, s *goquery.Selection) {
-			s.Find(".winner").Each(func(i int, s *goquery.Selection) {
-				s.Find("td").Each(func(i int, s *goquery.Selection) {
-					fmt.Println(s.Find("a").Text())
+	doc.Find(".game_summary").Each(func(i int, gs *goquery.Selection) {
+		gs.Find("table").Each(func(i int, t *goquery.Selection) {
+			t.Find(".winner").Each(func(i int, w *goquery.Selection) {
+				w.Find("td").Each(func(i int, td *goquery.Selection) {
+					fmt.Println(td.Find("a").Html())
 				})
 			})
-			s.Find(".loser").Each(func(i int, s *goquery.Selection) {
-				s.Find("td").Each(func(i int, s *goquery.Selection) {
-					fmt.Println(s.Find("a").Text())
+			t.Find(".loser").Each(func(i int, w *goquery.Selection) {
+				w.Find("td").Each(func(i int, td *goquery.Selection) {
+					fmt.Println(td.Find("a").Html())
 				})
 			})
 		})
@@ -207,14 +194,17 @@ func extractGameSummary(gameSummary string) {
 
 func main() {
 
-	// playerData := readCSVFile("nbastats2018-2019.csv")
+	playerData := readCSVFile("nbastats2018-2019.csv")
 
-	// r := mux.NewRouter()
-	// r.HandleFunc("/", index)
-	// r.HandleFunc("/players", func(w http.ResponseWriter, r *http.Request) {
-	// 	fmt.Fprintf(w, playerData)
-	// })
+	extractGameSummary()
+
+	r := mux.NewRouter()
+	r.HandleFunc("/", index)
+	r.HandleFunc("/players", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, playerData)
+	})
+	r.HandleFunc("/boxscore", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "e")
+	})
 	// http.ListenAndServe(":8000", r)
-	gameSummary := getBoxScoreHTML()
-	extractGameSummary(gameSummary)
 }
