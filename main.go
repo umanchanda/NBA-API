@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 
@@ -50,29 +51,31 @@ type NBAPlayer struct {
 
 // TeamBoxScore is a team box score
 type TeamBoxScore struct {
-	AwayTeam  string
-	HomeTeam  string
-	AwayScore string
-	HomeScore string
-	Status    string
-	AwayQuarterScore
-	HomeQuarterScore
+	LosingTeam       string           `json:"losing_team,omitempty"`
+	WinningTeam      string           `json:"winning_team,omitempty"`
+	LosingTeamScore  string           `json:"losing_team_score,omitempty"`
+	WinningTeamScore string           `json:"winning_team_score,omitempty"`
+	Status           string           `json:"status,omitempty"`
+	AwayQuarterScore AwayQuarterScore `json:"away_quarter_score,omitempty"`
+	HomeQuarterScore HomeQuarterScore `json:"home_quarter_score,omitempty"`
 }
 
 // AwayQuarterScore is the quarter score for the away team
 type AwayQuarterScore struct {
-	FirstQuarter  string
-	SecondQuarter string
-	ThirdQuarter  string
-	FourthQuarter string
+	AwayTeam      string `json:"away_team,omitempty"`
+	FirstQuarter  string `json:"first_quarter,omitempty"`
+	SecondQuarter string `json:"second_quarter,omitempty"`
+	ThirdQuarter  string `json:"third_quarter,omitempty"`
+	FourthQuarter string `json:"fourth_quarter,omitempty"`
 }
 
 // HomeQuarterScore is the quarter score for the home team
 type HomeQuarterScore struct {
-	FirstQuarter  string
-	SecondQuarter string
-	ThirdQuarter  string
-	FourthQuarter string
+	HomeTeam      string `json:"home_team,omitempty"`
+	FirstQuarter  string `json:"first_quarter,omitempty"`
+	SecondQuarter string `json:"second_quarter,omitempty"`
+	ThirdQuarter  string `json:"third_quarter,omitempty"`
+	FourthQuarter string `json:"fourth_quarter,omitempty"`
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -170,41 +173,66 @@ func getHTML(month string, day string, year string) []byte {
 	return body
 }
 
-func extractGameSummary() {
-	var boxScoreHTML = getHTML("2", "11", "2020")
+func extractGameSummary(month string, day string, year string) string {
+	var boxScoreHTML = getHTML(month, day, year)
 
 	p := bytes.NewReader(boxScoreHTML)
 	doc, _ := goquery.NewDocumentFromReader(p)
 
-	doc.Find(".game_summary").Each(func(i int, gs *goquery.Selection) {
-		gs.Find("table").Each(func(i int, t *goquery.Selection) {
-			t.Find(".winner").Each(func(i int, w *goquery.Selection) {
-				w.Find("td").Each(func(i int, td *goquery.Selection) {
-					fmt.Println(td.Find("a").Html())
-				})
-			})
-			t.Find(".loser").Each(func(i int, w *goquery.Selection) {
-				w.Find("td").Each(func(i int, td *goquery.Selection) {
-					fmt.Println(td.Find("a").Html())
-				})
-			})
-		})
-	})
+	losingTeam, _ := doc.Find(".game_summary .teams tbody .loser td a").Html()
+	losingTeamScore, _ := doc.Find(".game_summary .teams tbody .loser .right").Html()
+	winningTeam, _ := doc.Find(".game_summary .teams tbody .winner td a").Html()
+	winningTeamScore, _ := doc.Find(".game_summary table tbody .winner .right").Html()
+	status, _ := doc.Find(".game_summary .teams tbody .loser .gamelink a").Html()
+
+	table := doc.Find(".game_summary table").Eq(1)
+	tbody1 := table.Find("tbody tr").Eq(0)
+	tbody2 := table.Find("tbody tr").Eq(1)
+
+	awayTeam, _ := tbody1.Find("td a").Html()
+	homeTeam, _ := tbody2.Find("td a").Html()
+
+	awayFirstQuarter, _ := tbody1.Find(".center").Eq(0).Html()
+	awaySecondQuarter, _ := tbody1.Find(".center").Eq(1).Html()
+	awayThirdQuarter, _ := tbody1.Find(".center").Eq(2).Html()
+	awayFourthQuarter, _ := tbody1.Find(".center").Eq(3).Html()
+
+	homeFirstQuarter, _ := tbody2.Find(".center").Eq(0).Html()
+	homeSecondQuarter, _ := tbody2.Find(".center").Eq(1).Html()
+	homeThirdQuarter, _ := tbody2.Find(".center").Eq(2).Html()
+	homeFourthQuarter, _ := tbody2.Find(".center").Eq(3).Html()
+
+	awayQuarterScore := AwayQuarterScore{AwayTeam: awayTeam, FirstQuarter: awayFirstQuarter, SecondQuarter: awaySecondQuarter, ThirdQuarter: awayThirdQuarter, FourthQuarter: awayFourthQuarter}
+	homeQuarterScore := HomeQuarterScore{HomeTeam: homeTeam, FirstQuarter: homeFirstQuarter, SecondQuarter: homeSecondQuarter, ThirdQuarter: homeThirdQuarter, FourthQuarter: homeFourthQuarter}
+
+	score := TeamBoxScore{LosingTeam: losingTeam, WinningTeam: winningTeam, LosingTeamScore: losingTeamScore, WinningTeamScore: winningTeamScore, Status: status, AwayQuarterScore: awayQuarterScore, HomeQuarterScore: homeQuarterScore}
+	scoreJSON, err := json.Marshal(score)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(scoreJSON)
 }
 
 func main() {
 
 	playerData := readCSVFile("nbastats2018-2019.csv")
 
-	extractGameSummary()
-
 	r := mux.NewRouter()
 	r.HandleFunc("/", index)
 	r.HandleFunc("/players", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, playerData)
 	})
-	r.HandleFunc("/boxscore", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "e")
+	r.HandleFunc("/boxscores", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "hey")
 	})
-	// http.ListenAndServe(":8000", r)
+	r.HandleFunc("/boxscore/{year}/{month}/{day}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		month := vars["month"]
+		day := vars["day"]
+		year := vars["year"]
+		gameSummary := extractGameSummary(month, day, year)
+		fmt.Fprintf(w, gameSummary)
+	})
+	log.Fatal(http.ListenAndServe(":8000", r))
 }
