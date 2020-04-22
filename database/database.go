@@ -15,6 +15,37 @@ var host = ""
 var port = "5432"
 var dbName = ""
 
+// NBAPlayer contains fields for various nba stats
+type NBAPlayer struct {
+	Name     string `json:"name,omitempty"`
+	Height   string `json:"height,omitempty"`
+	Weight   string `json:"weight,omitempty"`
+	Team     string `json:"team,omitempty"`
+	Age      string `json:"age,omitempty"`
+	Salary   string `json:"salary,omitempty"`
+	Points   string `json:"points,omitempty"`
+	Blocks   string `json:"blocks,omitempty"`
+	Steals   string `json:"steals,omitempty"`
+	Assists  string `json:"assists,omitempty"`
+	Rebounds string `json:"rebounds,omitempty"`
+	FT       string `json:"ft,omitempty"`
+	FTA      string `json:"fta,omitempty"`
+	FG3      string `json:"fg3,omitempty"`
+	FG3A     string `json:"fg3a,omitempty"`
+	FG       string `json:"fg,omitempty"`
+	FGA      string `json:"fga,omitempty"`
+	MP       string `json:"mp,omitempty"`
+	G        string `json:"g,omitempty"`
+	PER      string `json:"per,omitempty"`
+	OWS      string `json:"ows,omitempty"`
+	DWS      string `json:"dws,omitempty"`
+	WS       string `json:"ws,omitempty"`
+	WS48     string `json:"ws48,omitempty"`
+	USG      string `json:"usg,omitempty"`
+	BPM      string `json:"bpm,omitempty"`
+	VORP     string `json:"vorp,omitempty"`
+}
+
 func connectToDB() *sql.DB {
 	connStr := "postgres://" + username + ":" + password + "@" + host + ":" + port + "/" + dbName
 
