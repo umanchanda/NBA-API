@@ -61,15 +61,6 @@ type AllTeamBoxScore struct {
 	BoxScores []TeamBoxScore `json:"box_scores,omitempty"`
 }
 
-// HomeQuarterScore is the quarter score for the home team
-type HomeQuarterScore struct {
-	HomeTeam      string `json:"home_team,omitempty"`
-	FirstQuarter  string `json:"first_quarter,omitempty"`
-	SecondQuarter string `json:"second_quarter,omitempty"`
-	ThirdQuarter  string `json:"third_quarter,omitempty"`
-	FourthQuarter string `json:"fourth_quarter,omitempty"`
-}
-
 func index(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "templates/index.html")
 }
@@ -98,46 +89,54 @@ func extractGameSummary(month string, day string, year string) string {
 	p := bytes.NewReader(boxScoreHTML)
 	doc, _ := goquery.NewDocumentFromReader(p)
 
-	losingTeam, _ := doc.Find(".game_summary .teams tbody .loser td a").Html()
-	losingTeamScore, _ := doc.Find(".game_summary .teams tbody .loser .right").Html()
-	winningTeam, _ := doc.Find(".game_summary .teams tbody .winner td a").Html()
-	winningTeamScore, _ := doc.Find(".game_summary table tbody .winner .right").Html()
-	status, _ := doc.Find(".game_summary .teams tbody .loser .gamelink a").Html()
-
-	table := doc.Find(".game_summary table").Eq(1)
-	tbody1 := table.Find("tbody tr").Eq(0)
-	tbody2 := table.Find("tbody tr").Eq(1)
-
-	awayTeam, _ := tbody1.Find("td a").Html()
-	homeTeam, _ := tbody2.Find("td a").Html()
-
-	awayFirstQuarter, _ := tbody1.Find(".center").Eq(0).Html()
-	awaySecondQuarter, _ := tbody1.Find(".center").Eq(1).Html()
-	awayThirdQuarter, _ := tbody1.Find(".center").Eq(2).Html()
-	awayFourthQuarter, _ := tbody1.Find(".center").Eq(3).Html()
-
-	homeFirstQuarter, _ := tbody2.Find(".center").Eq(0).Html()
-	homeSecondQuarter, _ := tbody2.Find(".center").Eq(1).Html()
-	homeThirdQuarter, _ := tbody2.Find(".center").Eq(2).Html()
-	homeFourthQuarter, _ := tbody2.Find(".center").Eq(3).Html()
-
-	awayQuarterScore := AwayQuarterScore{AwayTeam: awayTeam, FirstQuarter: awayFirstQuarter, SecondQuarter: awaySecondQuarter, ThirdQuarter: awayThirdQuarter, FourthQuarter: awayFourthQuarter}
-	homeQuarterScore := HomeQuarterScore{HomeTeam: homeTeam, FirstQuarter: homeFirstQuarter, SecondQuarter: homeSecondQuarter, ThirdQuarter: homeThirdQuarter, FourthQuarter: homeFourthQuarter}
-
-	score := TeamBoxScore{LosingTeam: losingTeam, WinningTeam: winningTeam, LosingTeamScore: losingTeamScore, WinningTeamScore: winningTeamScore, Status: status, AwayQuarterScore: awayQuarterScore, HomeQuarterScore: homeQuarterScore}
-	scoreJSON, err := json.Marshal(score)
-	if err != nil {
-		panic(err)
+	gs := doc.Find(".game_summary")
+	numGames := 0
+	for range gs.Nodes {
+		numGames++
 	}
 
-	return string(scoreJSON)
+	scoresArray := make([]TeamBoxScore, 0)
+
+	for i := 0; i < numGames; i++ {
+		game := doc.Find(".game_summary").Eq(i)
+		table0 := game.Find("table").Eq(0)
+		table1 := game.Find("table").Eq(1)
+
+		losingTeam, _ := table0.Find("tbody .loser td a").Html()
+		losingTeamScore, _ := table0.Find("tbody .loser .right").Html()
+		winningTeam, _ := table0.Find("tbody .winner td a").Html()
+		winningTeamScore, _ := table0.Find("tbody .winner .right").Html()
+		status, _ := doc.Find("tbody .loser .gamelink a").Html()
+
+		awayScores := make([]string, 0)
+		homeScores := make([]string, 0)
+
+		awayTeam, _ := table1.Find("tbody tr").Eq(0).Find("td a").Html()
+		homeTeam, _ := table1.Find("tbody tr").Eq(1).Find("td a").Html()
+
+		awayScores = append(awayScores, awayTeam)
+		homeScores = append(homeScores, homeTeam)
+
+		for i := 0; i < 4; i++ {
+			awayScore, _ := table1.Find("tbody tr").Eq(0).Find(".center").Eq(i).Html()
+			homeScore, _ := table1.Find("tbody tr").Eq(1).Find(".center").Eq(i).Html()
+			awayScores = append(awayScores, awayScore)
+			homeScores = append(homeScores, homeScore)
+		}
+
+		score := TeamBoxScore{LosingTeam: losingTeam, WinningTeam: winningTeam, LosingTeamScore: losingTeamScore, WinningTeamScore: winningTeamScore, Status: status, AwayQuarterScore: awayScores, HomeQuarterScore: homeScores}
+		scoresArray = append(scoresArray, score)
+	}
+	scores := AllTeamBoxScore{BoxScores: scoresArray}
+	scoresJSON, _ := json.Marshal(scores)
+
+	return string(scoresJSON)
 }
 
 func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", index)
-	// r.HandleFunc("/searchPlayer", searchPlayer)
 	r.HandleFunc("/boxscore/{year}/{month}/{day}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		month := vars["month"]
