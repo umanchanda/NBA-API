@@ -47,22 +47,18 @@ type NBAPlayer struct {
 
 // TeamBoxScore is a team box score
 type TeamBoxScore struct {
-	LosingTeam       string           `json:"losing_team,omitempty"`
-	WinningTeam      string           `json:"winning_team,omitempty"`
-	LosingTeamScore  string           `json:"losing_team_score,omitempty"`
-	WinningTeamScore string           `json:"winning_team_score,omitempty"`
-	Status           string           `json:"status,omitempty"`
-	AwayQuarterScore AwayQuarterScore `json:"away_quarter_score,omitempty"`
-	HomeQuarterScore HomeQuarterScore `json:"home_quarter_score,omitempty"`
+	LosingTeam       string   `json:"losing_team,omitempty"`
+	WinningTeam      string   `json:"winning_team,omitempty"`
+	LosingTeamScore  string   `json:"losing_team_score,omitempty"`
+	WinningTeamScore string   `json:"winning_team_score,omitempty"`
+	Status           string   `json:"status,omitempty"`
+	AwayQuarterScore []string `json:"away_quarter_score,omitempty"`
+	HomeQuarterScore []string `json:"home_quarter_score,omitempty"`
 }
 
-// AwayQuarterScore is the quarter score for the away team
-type AwayQuarterScore struct {
-	AwayTeam      string `json:"away_team,omitempty"`
-	FirstQuarter  string `json:"first_quarter,omitempty"`
-	SecondQuarter string `json:"second_quarter,omitempty"`
-	ThirdQuarter  string `json:"third_quarter,omitempty"`
-	FourthQuarter string `json:"fourth_quarter,omitempty"`
+// AllTeamBoxScore is a struct that lists all the scores for a given day
+type AllTeamBoxScore struct {
+	BoxScores []TeamBoxScore `json:"box_scores,omitempty"`
 }
 
 // HomeQuarterScore is the quarter score for the home team
