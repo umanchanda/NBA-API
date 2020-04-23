@@ -59,14 +59,10 @@ func extractGameSummary(month string, day string, year string) string {
 	doc, _ := goquery.NewDocumentFromReader(p)
 
 	gs := doc.Find(".game_summary")
-	numGames := 0
-	for range gs.Nodes {
-		numGames++
-	}
 
 	scoresArray := make([]TeamBoxScore, 0)
 
-	for i := 0; i < numGames; i++ {
+	for i := range gs.Nodes {
 		game := gs.Eq(i)
 		table0 := game.Find("table").Eq(0)
 		table1 := game.Find("table").Eq(1)
@@ -86,13 +82,9 @@ func extractGameSummary(month string, day string, year string) string {
 		awayScores = append(awayScores, awayTeam)
 		homeScores = append(homeScores, homeTeam)
 
-		numPeriods := 0
 		periods := table1.Find("tbody tr").Eq(0).Find(".center")
-		for range periods.Nodes {
-			numPeriods++
-		}
 
-		for i := 0; i < numPeriods; i++ {
+		for i := range periods.Nodes {
 			awayScore, _ := table1.Find("tbody tr").Eq(0).Find(".center").Eq(i).Html()
 			homeScore, _ := table1.Find("tbody tr").Eq(1).Find(".center").Eq(i).Html()
 			awayScores = append(awayScores, awayScore)
@@ -120,5 +112,6 @@ func main() {
 		gameSummary := extractGameSummary(month, day, year)
 		fmt.Fprintf(w, gameSummary)
 	})
+	fmt.Println("listening on :8000")
 	log.Fatal(http.ListenAndServe(":8000", r))
 }
