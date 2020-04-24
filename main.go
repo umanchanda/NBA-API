@@ -21,6 +21,8 @@ type TeamBoxScore struct {
 	LosingTeamScore  string   `json:"losing_team_score,omitempty"`
 	WinningTeamScore string   `json:"winning_team_score,omitempty"`
 	Status           string   `json:"status,omitempty"`
+	AwayTeam         string   `json:"away_team,omitempty"`
+	HomeTeam         string   `json:"home_team,omitempty"`
 	AwayQuarterScore []string `json:"away_quarter_score,omitempty"`
 	HomeQuarterScore []string `json:"home_quarter_score,omitempty"`
 }
@@ -79,9 +81,6 @@ func extractGameSummary(month string, day string, year string) string {
 		awayTeam, _ := table1.Find("tbody tr").Eq(0).Find("td a").Html()
 		homeTeam, _ := table1.Find("tbody tr").Eq(1).Find("td a").Html()
 
-		awayScores = append(awayScores, awayTeam)
-		homeScores = append(homeScores, homeTeam)
-
 		periods := table1.Find("tbody tr").Eq(0).Find(".center")
 
 		for i := range periods.Nodes {
@@ -91,7 +90,7 @@ func extractGameSummary(month string, day string, year string) string {
 			homeScores = append(homeScores, homeScore)
 		}
 
-		score := TeamBoxScore{LosingTeam: losingTeam, WinningTeam: winningTeam, LosingTeamScore: losingTeamScore, WinningTeamScore: winningTeamScore, Status: status, AwayQuarterScore: awayScores, HomeQuarterScore: homeScores}
+		score := TeamBoxScore{LosingTeam: losingTeam, WinningTeam: winningTeam, LosingTeamScore: losingTeamScore, WinningTeamScore: winningTeamScore, Status: status, AwayTeam: awayTeam, HomeTeam: homeTeam, AwayQuarterScore: awayScores, HomeQuarterScore: homeScores}
 		scoresArray = append(scoresArray, score)
 	}
 	scores := AllTeamBoxScore{BoxScores: scoresArray}
