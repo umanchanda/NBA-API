@@ -65,7 +65,7 @@ var teamCodes = map[string]string{
 	"Atlanta":       "ATL",
 	"Boston":        "BOS",
 	"Brooklyn":      "BKN",
-	"Charlotte":     "CHA",
+	"Charlotte":     "CHO",
 	"Chicago":       "CHI",
 	"Cleveland":     "CLE",
 	"Dallas":        "DAL",
