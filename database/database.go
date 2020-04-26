@@ -46,7 +46,7 @@ type NBAPlayer struct {
 	VORP     string `json:"vorp,omitempty"`
 }
 
-func connectToDB() *sql.DB {
+func ConnectToDB() *sql.DB {
 	connStr := "postgres://" + username + ":" + password + "@" + host + ":" + port + "/" + dbName
 
 	db, err := sql.Open("postgres", connStr)
@@ -59,7 +59,7 @@ func connectToDB() *sql.DB {
 	return db
 }
 
-func createTable(db *sql.DB) {
+func CreateTable(db *sql.DB) {
 	createSQLStatement := `CREATE TABLE IF NOT EXISTS playerstats (
 		Name string,
 		Height string,
@@ -98,7 +98,7 @@ func createTable(db *sql.DB) {
 	defer db.Close()
 }
 
-func insertData(db *sql.DB, filename string) {
+func InsertData(db *sql.DB, filename string) {
 	nbaCSVFile, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err)
