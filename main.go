@@ -7,9 +7,9 @@ import (
 
 	"github.com/gorilla/mux"
 	
-	"teamboxscore"
-	"teamtotals"
-	"playertotals"
+	"github.com/umanchanda/NBA-API/teamboxscore"
+	"github.com/umanchanda/NBA-API/teamtotals"
+	"github.com/umanchanda/NBA-API/playertotals"
 )
 
 const baseURL = "https://www.basketball-reference.com"
