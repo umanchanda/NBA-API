@@ -1,4 +1,4 @@
-module playertotals
+module github.com/umanchanda/NBA-API/playertotals
 
 go 1.14
 

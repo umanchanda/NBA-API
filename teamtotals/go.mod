@@ -1,4 +1,4 @@
-module teamtotals
+module github.com/umanchanda/NBA-API/teamtotals
 
 go 1.14
 

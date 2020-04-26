@@ -1,4 +1,4 @@
-module teamboxscore
+module github.com/umanchanda/NBA-API/teamboxscore
 
 go 1.14
 
