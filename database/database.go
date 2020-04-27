@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	_ "github.com/lib/pq"
 )
 
-var username = ""
-var password = ""
-var host = ""
+var username = "postgres"
+var password = "d7OY7hwTmyIbEO7Ppd2M"
+var host = "nba-api.celg0gvjzujb.us-east-1.rds.amazonaws.com"
 var port = "5432"
-var dbName = ""
+var dbName = "nba-api"
 
 // NBAPlayer contains fields for various nba stats
 type NBAPlayer struct {
@@ -65,29 +66,29 @@ func CreateTable(db *sql.DB) {
 		Height string,
 		Weight string,
 		Team string,
-		Age numeric,
-		Salary numeric,
-		Points numeric,
-		Blocks numeric,
-		Steals numeric,
-		Assists numeric,
-		Rebounds numeric,
-		FT numeric,
-		FTA numeric,
-		FG3 numeric,
-		FG3A numeric,
-		FG numeric,
-		FGA numeric,
-		MP numeric,
-		G numeric,
-		PER numeric,
-		OWS numeric,
-		DWS numeric,
-		WS numeric,
-		WS48 numeric,
-		USG numeric,
-		BPM numeric,
-		VORP numeric
+		Age string,
+		Salary string,
+		Points string,
+		Blocks string,
+		Steals string,
+		Assists string,
+		Rebounds string,
+		FT string,
+		FTA string,
+		FG3 string,
+		FG3A string,
+		FG string,
+		FGA string,
+		MP string,
+		G string,
+		PER string,
+		OWS string,
+		DWS string,
+		WS string,
+		WS48 string,
+		USG string,
+		BPM string,
+		VORP string
 	)`
 
 	_, err := db.Exec(createSQLStatement)
@@ -151,4 +152,10 @@ func InsertData(db *sql.DB, filename string) {
 			fmt.Println(err)
 		}
 	}
+}
+
+func DatabaseFunctions() {
+	db := ConnectToDB()
+	CreateTable(db)
+	InsertData(db, "database/nbastats2018-2019.csv")
 }
