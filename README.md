@@ -2,13 +2,11 @@
 
 To get started:
 
-1. Clone the repo
+1. `go get github.com/umanchanda/NBA-API`
 
-2. `go install github.com/umanchanda/NBA-API`
+2. run: `go run main.go` in your terminal
 
-3. run: `go run main.go` in your terminal
-
-4. Head to `localhost:8000` in your browser
+3. Head to `localhost:8000` in your browser
 
 How to use this repo:
 
