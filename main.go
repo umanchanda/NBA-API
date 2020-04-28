@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/umanchanda/NBA-API/database"
+	// "github.com/umanchanda/NBA-API/database"
 	"github.com/umanchanda/NBA-API/playertotals"
 	"github.com/umanchanda/NBA-API/teamboxscore"
 	"github.com/umanchanda/NBA-API/teamtotals"
@@ -15,7 +15,7 @@ import (
 
 func main() {
 
-	database.DatabaseFunctions()
+	// database.DatabaseFunctions()
 
 	r := mux.NewRouter()
 
