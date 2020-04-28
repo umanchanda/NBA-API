@@ -4,7 +4,7 @@ To get started:
 
 1. `go get github.com/umanchanda/NBA-API`
 
-2. run: `go run ${GOPATH}/src/github.com/umanchanda/NBA-API` in your terminal
+2. run: `go run ${GOPATH}/src/github.com/umanchanda/NBA-API/main.go` in your terminal
 
 3. Head to `localhost:8000` in your browser
 
