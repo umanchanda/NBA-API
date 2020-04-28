@@ -2,13 +2,15 @@
 
 To get started:
 
-`go get -u github.com/gorilla/mux`
+1. Clone the repo
 
-`go get -u github.com/PuerkitoBio/goquery`
+2. `go install github.com/umanchanda/NBA-API`
 
-run: `go run main.go` in your terminal
+3. run: `go run main.go` in your terminal
 
-Head to `localhost:8000` in your browser
+4. Head to `localhost:8000` in your browser
+
+How to use this repo:
 
 To view all the boxscores for a given date, head over to `/boxscore/year/month/date`
 
