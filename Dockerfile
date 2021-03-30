@@ -10,4 +10,4 @@ RUN go install -v ./...
 
 EXPOSE 8000
 
-CMD ["go", "run", "src/app/main.go"]
+CMD ["go", "run", "main.go"]
