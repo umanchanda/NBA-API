@@ -8,6 +8,16 @@ To get started:
 
 3. Head to `localhost:8000` in your browser
 
+To run as a Docker build:
+
+1. Clone the repo
+
+2. `docker build -t nba .`
+
+3. `docker run -p 8000:8000 nba`
+
+4. Head to `localhost:8000` in your browser
+
 How to use this repo:
 
 To view all the boxscores for a given date, head over to `/boxscore/${year}/${month}/${date}`
