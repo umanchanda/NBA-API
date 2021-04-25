@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 
-	// "github.com/umanchanda/NBA-API/database"
 	"github.com/umanchanda/NBA-API/playertotals"
 	"github.com/umanchanda/NBA-API/teamboxscore"
 	"github.com/umanchanda/NBA-API/teamtotals"
 )
 
 func main() {
-
-	// database.DatabaseFunctions()
 
 	r := mux.NewRouter()
 
@@ -53,6 +51,10 @@ func main() {
 		gameSummary := playertotals.ExtractPlayerSummary(month, day, year, awayteam, hometeam)
 		fmt.Fprintf(w, gameSummary)
 	})
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = ":8000"
+	}
 	fmt.Println("listening on :8000")
-	log.Fatal(http.ListenAndServe(":8000", r))
+	log.Fatal(http.ListenAndServe(port, r))
 }
