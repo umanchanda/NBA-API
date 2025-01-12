@@ -55,6 +55,7 @@ type TeamBoxScore struct {
 	AwayQuarterScore []string `json:"away_quarter_score,omitempty"`
 	HomeQuarterScore []string `json:"home_quarter_score,omitempty"`
 	ScoreBreakdown   string   `json:"score_breakdown,omitempty"`
+	PlayerBreakdown  string   `json:"player_breakdown,omitempty`
 }
 
 // AllTeamBoxScore is a struct that lists all the scores for a given day
@@ -119,6 +120,7 @@ func ExtractBoxScore(month string, day string, year string) string {
 		awayTeamCode := teamCodes[awayTeam]
 		homeTeamCode := teamCodes[homeTeam]
 		scoreBreakdown := "/boxscore/" + year + "/" + month + "/" + day + "/" + awayTeamCode + "/" + homeTeamCode
+		playerBreakdown := "/boxscore/" + year + "/" + month + "/" + day + "/" + awayTeamCode + "/" + homeTeamCode + "/player"
 
 		score := TeamBoxScore{
 			LosingTeam:       losingTeam,
@@ -130,6 +132,7 @@ func ExtractBoxScore(month string, day string, year string) string {
 			AwayQuarterScore: awayScores,
 			HomeQuarterScore: homeScores,
 			ScoreBreakdown:   scoreBreakdown,
+			PlayerBreakdown:  playerBreakdown,
 		}
 		scoresArray = append(scoresArray, score)
 	}
