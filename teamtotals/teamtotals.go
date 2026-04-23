@@ -3,6 +3,7 @@ package teamtotals
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -10,39 +11,6 @@ import (
 )
 
 const baseURL = "https://www.basketball-reference.com"
-
-var teamCodes = map[string]string{
-	"Atlanta":       "ATL",
-	"Boston":        "BOS",
-	"Brooklyn":      "BKN",
-	"Charlotte":     "CHO",
-	"Chicago":       "CHI",
-	"Cleveland":     "CLE",
-	"Dallas":        "DAL",
-	"Denver":        "DEN",
-	"Detroit":       "DET",
-	"Golden State":  "GSW",
-	"Houston":       "HOU",
-	"Indiana":       "IND",
-	"LA Lakers":     "LAL",
-	"LA Clippers":   "LAC",
-	"Memphis":       "MEM",
-	"Miami":         "MIA",
-	"Milwaukee":     "MIL",
-	"Minnesota":     "MIN",
-	"New Orleans":   "NOP",
-	"New York":      "NYK",
-	"Oklahoma City": "OKC",
-	"Orlando":       "ORL",
-	"Philadelphia":  "PHI",
-	"Phoenix":       "PHO",
-	"Portland":      "POR",
-	"Sacramento":    "SAC",
-	"San Antonio":   "SAS",
-	"Toronto":       "TOR",
-	"Utah":          "UTA",
-	"Washington":    "WAS",
-}
 
 // TeamTotals gives the totals in the box score for a team in a game
 type TeamTotals struct {
@@ -73,94 +41,67 @@ type TeamTotalsGame struct {
 	TeamTotals []TeamTotals
 }
 
-func GetGameSummaryHTML(month string, day string, year string, homeTeam string) []byte {
-	var url = baseURL + "/boxscores/" + year + month + day + "0" + homeTeam + ".html"
+func getGameSummaryHTML(month, day, year, homeTeam string) ([]byte, error) {
+	url := baseURL + "/boxscores/" + year + month + day + "0" + homeTeam + ".html"
 	resp, err := http.Get(url)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("fetching boxscore page: %w", err)
 	}
-
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
-
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("reading response body: %w", err)
 	}
-
-	return body
+	return body, nil
 }
 
-func ExtractGameSummary(month string, day string, year string, awayTeam string, homeTeam string) string {
-	var gameSummaryHTML = GetGameSummaryHTML(month, day, year, homeTeam)
-	p := bytes.NewReader(gameSummaryHTML)
-	doc, _ := goquery.NewDocumentFromReader(p)
+// extractTeamTotals builds a TeamTotals from a tfoot selection for one team.
+func extractTeamTotals(sel *goquery.Selection, team string) TeamTotals {
+	td := func(i int) string { return sel.Find("td").Eq(i).Text() }
+	return TeamTotals{
+		Team:                 team,
+		MinutesPlayed:        td(0),
+		FieldGoals:           td(1),
+		FieldGoalsAttempted:  td(2),
+		FieldGoalPercentage:  td(3),
+		ThreePoint:           td(4),
+		ThreePointAttempted:  td(5),
+		ThreePointPercentage: td(6),
+		FreeThrows:           td(7),
+		FreeThrowsAttempted:  td(8),
+		FreeThrowPercentage:  td(9),
+		OffensiveRebounds:    td(10),
+		DefensiveRebounds:    td(11),
+		TotalRebounds:        td(12),
+		Assists:              td(13),
+		Steals:               td(14),
+		Blocks:               td(15),
+		Turnovers:            td(16),
+		PersonalFouls:        td(17),
+		Points:               td(18),
+	}
+}
 
-	boxScoresArray := make([]TeamTotals, 0)
-
-	awayTeamBSBasic := doc.Find("#box-" + awayTeam + "-game-basic tfoot tr")
-
-	awayStats := make([]string, 0)
-	for i := 0; i < 19; i++ {
-		awayStats = append(awayStats, awayTeamBSBasic.Find("td").Eq(i).Text())
+func ExtractGameSummary(month, day, year, awayTeam, homeTeam string) (string, error) {
+	html, err := getGameSummaryHTML(month, day, year, homeTeam)
+	if err != nil {
+		return "", err
 	}
 
-	ttAway := TeamTotals{
-		Team:                 awayTeam,
-		MinutesPlayed:        awayStats[0],
-		FieldGoals:           awayStats[1],
-		FieldGoalsAttempted:  awayStats[2],
-		FieldGoalPercentage:  awayStats[3],
-		ThreePoint:           awayStats[4],
-		ThreePointAttempted:  awayStats[5],
-		ThreePointPercentage: awayStats[6],
-		FreeThrows:           awayStats[7],
-		FreeThrowsAttempted:  awayStats[8],
-		FreeThrowPercentage:  awayStats[9],
-		OffensiveRebounds:    awayStats[10],
-		DefensiveRebounds:    awayStats[11],
-		TotalRebounds:        awayStats[12],
-		Assists:              awayStats[13],
-		Steals:               awayStats[14],
-		Blocks:               awayStats[15],
-		Turnovers:            awayStats[16],
-		PersonalFouls:        awayStats[17],
-		Points:               awayStats[18],
-	}
-	boxScoresArray = append(boxScoresArray, ttAway)
-
-	homeTeamBSBasic := doc.Find("#box-" + homeTeam + "-game-basic tfoot")
-
-	homeStats := make([]string, 0)
-	for i := 0; i < 19; i++ {
-		homeStats = append(homeStats, homeTeamBSBasic.Find("td").Eq(i).Text())
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
+	if err != nil {
+		return "", fmt.Errorf("parsing HTML: %w", err)
 	}
 
-	ttHome := TeamTotals{
-		Team:                 homeTeam,
-		MinutesPlayed:        homeStats[0],
-		FieldGoals:           homeStats[1],
-		FieldGoalsAttempted:  homeStats[2],
-		FieldGoalPercentage:  homeStats[3],
-		ThreePoint:           homeStats[4],
-		ThreePointAttempted:  homeStats[5],
-		ThreePointPercentage: homeStats[6],
-		FreeThrows:           homeStats[7],
-		FreeThrowsAttempted:  homeStats[8],
-		FreeThrowPercentage:  homeStats[9],
-		OffensiveRebounds:    homeStats[10],
-		DefensiveRebounds:    homeStats[11],
-		TotalRebounds:        homeStats[12],
-		Assists:              homeStats[13],
-		Steals:               homeStats[14],
-		Blocks:               homeStats[15],
-		Turnovers:            homeStats[16],
-		PersonalFouls:        homeStats[17],
-		Points:               homeStats[18],
+	boxScores := []TeamTotals{
+		extractTeamTotals(doc.Find("#box-"+awayTeam+"-game-basic tfoot tr"), awayTeam),
+		extractTeamTotals(doc.Find("#box-"+homeTeam+"-game-basic tfoot"), homeTeam),
 	}
-	boxScoresArray = append(boxScoresArray, ttHome)
 
-	boxScoresArrayJSON, _ := json.Marshal(boxScoresArray)
-
-	return string(boxScoresArrayJSON)
+	result, err := json.Marshal(boxScores)
+	if err != nil {
+		return "", fmt.Errorf("encoding JSON: %w", err)
+	}
+	return string(result), nil
 }

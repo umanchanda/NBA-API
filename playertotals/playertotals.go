@@ -3,6 +3,7 @@ package playertotals
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -10,39 +11,6 @@ import (
 )
 
 const baseURL = "https://www.basketball-reference.com"
-
-var teamCodes = map[string]string{
-	"Atlanta":       "ATL",
-	"Boston":        "BOS",
-	"Brooklyn":      "BKN",
-	"Charlotte":     "CHO",
-	"Chicago":       "CHI",
-	"Cleveland":     "CLE",
-	"Dallas":        "DAL",
-	"Denver":        "DEN",
-	"Detroit":       "DET",
-	"Golden State":  "GSW",
-	"Houston":       "HOU",
-	"Indiana":       "IND",
-	"LA Lakers":     "LAL",
-	"LA Clippers":   "LAC",
-	"Memphis":       "MEM",
-	"Miami":         "MIA",
-	"Milwaukee":     "MIL",
-	"Minnesota":     "MIN",
-	"New Orleans":   "NOP",
-	"New York":      "NYK",
-	"Oklahoma City": "OKC",
-	"Orlando":       "ORL",
-	"Philadelphia":  "PHI",
-	"Phoenix":       "PHO",
-	"Portland":      "POR",
-	"Sacramento":    "SAC",
-	"San Antonio":   "SAS",
-	"Toronto":       "TOR",
-	"Utah":          "UTA",
-	"Washington":    "WAS",
-}
 
 // PlayerTotals represents a player box score from a single game
 type PlayerTotals struct {
@@ -76,166 +44,91 @@ type PlayerTotalsTeam struct {
 	Reserves []PlayerTotals `json:"reserves,omitempty"`
 }
 
-// PlayerTotalsGame is the list of all players in a game for both both teams
+// PlayerTotalsGame is the list of all players in a game for both teams
 type PlayerTotalsGame struct {
 	Players []PlayerTotalsTeam `json:"players,omitempty"`
 }
 
-func GetGameSummaryHTML(month string, day string, year string, homeTeam string) []byte {
-	var url = baseURL + "/boxscores/" + year + month + day + "0" + homeTeam + ".html"
+func getGameSummaryHTML(month, day, year, homeTeam string) ([]byte, error) {
+	url := baseURL + "/boxscores/" + year + month + day + "0" + homeTeam + ".html"
 	resp, err := http.Get(url)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("fetching boxscore page: %w", err)
 	}
-
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
-
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("reading response body: %w", err)
 	}
-
-	return body
+	return body, nil
 }
 
-func ExtractPlayerSummary(month string, day string, year string, awayTeam string, homeTeam string) string {
-	var gameSummaryHTML = GetGameSummaryHTML(month, day, year, homeTeam)
-	p := bytes.NewReader(gameSummaryHTML)
-	doc, _ := goquery.NewDocumentFromReader(p)
+// extractPlayerRow builds a PlayerTotals from a single table row selection.
+func extractPlayerRow(row *goquery.Selection, team string) PlayerTotals {
+	td := func(i int) string { return row.Find("td").Eq(i).Text() }
+	return PlayerTotals{
+		Team:                 team,
+		Name:                 row.Find("a").Text(),
+		MinutesPlayed:        td(0),
+		FieldGoals:           td(1),
+		FieldGoalsAttempted:  td(2),
+		FieldGoalPercentage:  td(3),
+		ThreePoint:           td(4),
+		ThreePointAttempted:  td(5),
+		ThreePointPercentage: td(6),
+		FreeThrows:           td(7),
+		FreeThrowsAttempted:  td(8),
+		FreeThrowPercentage:  td(9),
+		OffensiveRebounds:    td(10),
+		DefensiveRebounds:    td(11),
+		TotalRebounds:        td(12),
+		Assists:              td(13),
+		Steals:               td(14),
+		Blocks:               td(15),
+		Turnovers:            td(16),
+		PersonalFouls:        td(17),
+		Points:               td(18),
+		PlusMinus:            td(19),
+	}
+}
 
-	allPlayers := make([]PlayerTotalsTeam, 0)
+// extractTeamPlayers collects starters (rows 0-4) and reserves (rows 6-15) for a team.
+func extractTeamPlayers(doc *goquery.Document, team string) PlayerTotalsTeam {
+	rows := doc.Find("#box-" + team + "-game-basic tbody tr")
 
-	awayStarters := make([]PlayerTotals, 0)
-	awayReserves := make([]PlayerTotals, 0)
+	starters := make([]PlayerTotals, 0, 5)
 	for i := 0; i < 5; i++ {
-		player := doc.Find("#box-" + awayTeam + "-game-basic tbody tr").Eq(i)
-		awayStarters = append(awayStarters, PlayerTotals{
-			Team:                 awayTeam,
-			Name:                 player.Find("a").Text(),
-			MinutesPlayed:        player.Find("td").Eq(0).Text(),
-			FieldGoals:           player.Find("td").Eq(1).Text(),
-			FieldGoalsAttempted:  player.Find("td").Eq(2).Text(),
-			FieldGoalPercentage:  player.Find("td").Eq(3).Text(),
-			ThreePoint:           player.Find("td").Eq(4).Text(),
-			ThreePointAttempted:  player.Find("td").Eq(5).Text(),
-			ThreePointPercentage: player.Find("td").Eq(6).Text(),
-			FreeThrows:           player.Find("td").Eq(7).Text(),
-			FreeThrowsAttempted:  player.Find("td").Eq(8).Text(),
-			FreeThrowPercentage:  player.Find("td").Eq(9).Text(),
-			OffensiveRebounds:    player.Find("td").Eq(10).Text(),
-			DefensiveRebounds:    player.Find("td").Eq(11).Text(),
-			TotalRebounds:        player.Find("td").Eq(12).Text(),
-			Assists:              player.Find("td").Eq(13).Text(),
-			Steals:               player.Find("td").Eq(14).Text(),
-			Blocks:               player.Find("td").Eq(15).Text(),
-			Turnovers:            player.Find("td").Eq(16).Text(),
-			PersonalFouls:        player.Find("td").Eq(17).Text(),
-			Points:               player.Find("td").Eq(18).Text(),
-			PlusMinus:            player.Find("td").Eq(19).Text(),
-		})
+		starters = append(starters, extractPlayerRow(rows.Eq(i), team))
 	}
 
+	reserves := make([]PlayerTotals, 0, 10)
 	for i := 6; i < 16; i++ {
-		player := doc.Find("#box-" + awayTeam + "-game-basic tbody tr").Eq(i)
-		awayReserves = append(awayReserves, PlayerTotals{
-			Team:                 awayTeam,
-			Name:                 player.Find("a").Text(),
-			MinutesPlayed:        player.Find("td").Eq(0).Text(),
-			FieldGoals:           player.Find("td").Eq(1).Text(),
-			FieldGoalsAttempted:  player.Find("td").Eq(2).Text(),
-			FieldGoalPercentage:  player.Find("td").Eq(3).Text(),
-			ThreePoint:           player.Find("td").Eq(4).Text(),
-			ThreePointAttempted:  player.Find("td").Eq(5).Text(),
-			ThreePointPercentage: player.Find("td").Eq(6).Text(),
-			FreeThrows:           player.Find("td").Eq(7).Text(),
-			FreeThrowsAttempted:  player.Find("td").Eq(8).Text(),
-			FreeThrowPercentage:  player.Find("td").Eq(9).Text(),
-			OffensiveRebounds:    player.Find("td").Eq(10).Text(),
-			DefensiveRebounds:    player.Find("td").Eq(11).Text(),
-			TotalRebounds:        player.Find("td").Eq(12).Text(),
-			Assists:              player.Find("td").Eq(13).Text(),
-			Steals:               player.Find("td").Eq(14).Text(),
-			Blocks:               player.Find("td").Eq(15).Text(),
-			Turnovers:            player.Find("td").Eq(16).Text(),
-			PersonalFouls:        player.Find("td").Eq(17).Text(),
-			Points:               player.Find("td").Eq(18).Text(),
-			PlusMinus:            player.Find("td").Eq(19).Text(),
-		})
+		reserves = append(reserves, extractPlayerRow(rows.Eq(i), team))
 	}
 
-	away := PlayerTotalsTeam{
-		Starters: awayStarters,
-		Reserves: awayReserves,
+	return PlayerTotalsTeam{Starters: starters, Reserves: reserves}
+}
+
+func ExtractPlayerSummary(month, day, year, awayTeam, homeTeam string) (string, error) {
+	html, err := getGameSummaryHTML(month, day, year, homeTeam)
+	if err != nil {
+		return "", err
 	}
 
-	allPlayers = append(allPlayers, away)
-
-	homeStarters := make([]PlayerTotals, 0)
-	homeReserves := make([]PlayerTotals, 0)
-	for i := 0; i < 5; i++ {
-		player := doc.Find("#box-" + homeTeam + "-game-basic tbody tr").Eq(i)
-		homeStarters = append(homeStarters, PlayerTotals{
-			Team:                 homeTeam,
-			Name:                 player.Find("a").Text(),
-			MinutesPlayed:        player.Find("td").Eq(0).Text(),
-			FieldGoals:           player.Find("td").Eq(1).Text(),
-			FieldGoalsAttempted:  player.Find("td").Eq(2).Text(),
-			FieldGoalPercentage:  player.Find("td").Eq(3).Text(),
-			ThreePoint:           player.Find("td").Eq(4).Text(),
-			ThreePointAttempted:  player.Find("td").Eq(5).Text(),
-			ThreePointPercentage: player.Find("td").Eq(6).Text(),
-			FreeThrows:           player.Find("td").Eq(7).Text(),
-			FreeThrowsAttempted:  player.Find("td").Eq(8).Text(),
-			FreeThrowPercentage:  player.Find("td").Eq(9).Text(),
-			OffensiveRebounds:    player.Find("td").Eq(10).Text(),
-			DefensiveRebounds:    player.Find("td").Eq(11).Text(),
-			TotalRebounds:        player.Find("td").Eq(12).Text(),
-			Assists:              player.Find("td").Eq(13).Text(),
-			Steals:               player.Find("td").Eq(14).Text(),
-			Blocks:               player.Find("td").Eq(15).Text(),
-			Turnovers:            player.Find("td").Eq(16).Text(),
-			PersonalFouls:        player.Find("td").Eq(17).Text(),
-			Points:               player.Find("td").Eq(18).Text(),
-			PlusMinus:            player.Find("td").Eq(19).Text(),
-		})
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(html))
+	if err != nil {
+		return "", fmt.Errorf("parsing HTML: %w", err)
 	}
 
-	for i := 6; i < 16; i++ {
-		player := doc.Find("#box-" + homeTeam + "-game-basic tbody tr").Eq(i)
-		homeReserves = append(homeReserves, PlayerTotals{
-			Team:                 homeTeam,
-			Name:                 player.Find("a").Text(),
-			MinutesPlayed:        player.Find("td").Eq(0).Text(),
-			FieldGoals:           player.Find("td").Eq(1).Text(),
-			FieldGoalsAttempted:  player.Find("td").Eq(2).Text(),
-			FieldGoalPercentage:  player.Find("td").Eq(3).Text(),
-			ThreePoint:           player.Find("td").Eq(4).Text(),
-			ThreePointAttempted:  player.Find("td").Eq(5).Text(),
-			ThreePointPercentage: player.Find("td").Eq(6).Text(),
-			FreeThrows:           player.Find("td").Eq(7).Text(),
-			FreeThrowsAttempted:  player.Find("td").Eq(8).Text(),
-			FreeThrowPercentage:  player.Find("td").Eq(9).Text(),
-			OffensiveRebounds:    player.Find("td").Eq(10).Text(),
-			DefensiveRebounds:    player.Find("td").Eq(11).Text(),
-			TotalRebounds:        player.Find("td").Eq(12).Text(),
-			Assists:              player.Find("td").Eq(13).Text(),
-			Steals:               player.Find("td").Eq(14).Text(),
-			Blocks:               player.Find("td").Eq(15).Text(),
-			Turnovers:            player.Find("td").Eq(16).Text(),
-			PersonalFouls:        player.Find("td").Eq(17).Text(),
-			Points:               player.Find("td").Eq(18).Text(),
-			PlusMinus:            player.Find("td").Eq(19).Text(),
-		})
+	allPlayers := []PlayerTotalsTeam{
+		extractTeamPlayers(doc, awayTeam),
+		extractTeamPlayers(doc, homeTeam),
 	}
 
-	home := PlayerTotalsTeam{
-		Starters: homeStarters,
-		Reserves: homeReserves,
+	result, err := json.Marshal(allPlayers)
+	if err != nil {
+		return "", fmt.Errorf("encoding JSON: %w", err)
 	}
-
-	allPlayers = append(allPlayers, home)
-	allPlayersJSON, _ := json.Marshal(allPlayers)
-
-	return string(allPlayersJSON)
+	return string(result), nil
 }

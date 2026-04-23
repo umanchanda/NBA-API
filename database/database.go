@@ -7,14 +7,21 @@ import (
 	"fmt"
 	"io"
 	"os"
+
 	_ "github.com/lib/pq"
 )
 
-var username = "postgres"
-var password = "d7OY7hwTmyIbEO7Ppd2M"
-var host = "nba-api.celg0gvjzujb.us-east-1.rds.amazonaws.com"
-var port = "5432"
-var dbName = "nba-api"
+func connStr() string {
+	username := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+	if port == "" {
+		port = "5432"
+	}
+	return "postgres://" + username + ":" + password + "@" + host + ":" + port + "/" + dbName
+}
 
 // NBAPlayer contains fields for various nba stats
 type NBAPlayer struct {
@@ -47,20 +54,15 @@ type NBAPlayer struct {
 	VORP     string `json:"vorp,omitempty"`
 }
 
-func ConnectToDB() *sql.DB {
-	connStr := "postgres://" + username + ":" + password + "@" + host + ":" + port + "/" + dbName
-
-	db, err := sql.Open("postgres", connStr)
+func ConnectToDB() (*sql.DB, error) {
+	db, err := sql.Open("postgres", connStr())
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	defer db.Close()
-
-	return db
+	return db, nil
 }
 
-func CreateTable(db *sql.DB) {
+func CreateTable(db *sql.DB) error {
 	createSQLStatement := `CREATE TABLE IF NOT EXISTS playerstats (
 		Name string,
 		Height string,
@@ -92,70 +94,58 @@ func CreateTable(db *sql.DB) {
 	)`
 
 	_, err := db.Exec(createSQLStatement)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	defer db.Close()
+	return err
 }
 
-func InsertData(db *sql.DB, filename string) {
+func InsertData(db *sql.DB, filename string) error {
 	nbaCSVFile, err := os.Open(filename)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
+	defer nbaCSVFile.Close()
+
 	reader := csv.NewReader(bufio.NewReader(nbaCSVFile))
 	for {
 		line, err := reader.Read()
 		if err == io.EOF {
 			break
-		} else if err != nil {
-			fmt.Println(err)
+		}
+		if err != nil {
+			return err
 		}
 
 		insertSQLStatement := `INSERT INTO playerstats (
-			Name,
-			Height,
-			Weight,
-			Team,
-			Age,
-			Salary,
-			Points,
-			Blocks,
-			Steals,
-			Assists,
-			Rebounds,
-			FT,
-			FTA,
-			FG3,
-			FG3,
-			FG,
-			FGA,
-			MP,
-			G,
-			PER,
-			OWS,
-			DWS,
-			WS,
-			WS48,
-			USG,
-			BPM,
-			VORP
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
-		RETURNING id`
-		id := 0
+			Name, Height, Weight, Team, Age, Salary, Points, Blocks, Steals,
+			Assists, Rebounds, FT, FTA, FG3, FG3A, FG, FGA, MP, G,
+			PER, OWS, DWS, WS, WS48, USG, BPM, VORP
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+			$15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
+		) RETURNING id`
 
-		err = db.QueryRow(insertSQLStatement, line[0], line[1], line[2], line[3], line[4], line[5], line[6], line[7], line[8], line[9], line[10], line[11], line[12], line[13],
-			line[14], line[15], line[16], line[17], line[18], line[19], line[20], line[21], line[22], line[23], line[24], line[25], line[26], line[27]).Scan(&id)
+		id := 0
+		err = db.QueryRow(insertSQLStatement,
+			line[0], line[1], line[2], line[3], line[4], line[5], line[6],
+			line[7], line[8], line[9], line[10], line[11], line[12], line[13],
+			line[14], line[15], line[16], line[17], line[18], line[19], line[20],
+			line[21], line[22], line[23], line[24], line[25], line[26],
+		).Scan(&id)
 		if err != nil {
-			fmt.Println(err)
+			return fmt.Errorf("insert failed: %w", err)
 		}
 	}
+	return nil
 }
 
-func DatabaseFunctions() {
-	db := ConnectToDB()
-	CreateTable(db)
-	InsertData(db, "database/nbastats2018-2019.csv")
+func DatabaseFunctions() error {
+	db, err := ConnectToDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if err := CreateTable(db); err != nil {
+		return err
+	}
+	return InsertData(db, "database/nbastats2018-2019.csv")
 }
