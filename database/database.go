@@ -12,6 +12,9 @@ import (
 )
 
 func connStr() string {
+	if url := os.Getenv("DATABASE_URL"); url != "" {
+		return url
+	}
 	username := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
 	host := os.Getenv("DB_HOST")
@@ -20,7 +23,7 @@ func connStr() string {
 	if port == "" {
 		port = "5432"
 	}
-	return "postgres://" + username + ":" + password + "@" + host + ":" + port + "/" + dbName
+	return "postgres://" + username + ":" + password + "@" + host + ":" + port + "/" + dbName + "?sslmode=require"
 }
 
 // NBAPlayer contains fields for various nba stats
@@ -64,33 +67,34 @@ func ConnectToDB() (*sql.DB, error) {
 
 func CreateTable(db *sql.DB) error {
 	createSQLStatement := `CREATE TABLE IF NOT EXISTS playerstats (
-		Name string,
-		Height string,
-		Weight string,
-		Team string,
-		Age string,
-		Salary string,
-		Points string,
-		Blocks string,
-		Steals string,
-		Assists string,
-		Rebounds string,
-		FT string,
-		FTA string,
-		FG3 string,
-		FG3A string,
-		FG string,
-		FGA string,
-		MP string,
-		G string,
-		PER string,
-		OWS string,
-		DWS string,
-		WS string,
-		WS48 string,
-		USG string,
-		BPM string,
-		VORP string
+		id SERIAL PRIMARY KEY,
+		Name TEXT,
+		Height TEXT,
+		Weight TEXT,
+		Team TEXT,
+		Age TEXT,
+		Salary TEXT,
+		Points TEXT,
+		Blocks TEXT,
+		Steals TEXT,
+		Assists TEXT,
+		Rebounds TEXT,
+		FT TEXT,
+		FTA TEXT,
+		FG3 TEXT,
+		FG3A TEXT,
+		FG TEXT,
+		FGA TEXT,
+		MP TEXT,
+		G TEXT,
+		PER TEXT,
+		OWS TEXT,
+		DWS TEXT,
+		WS TEXT,
+		WS48 TEXT,
+		USG TEXT,
+		BPM TEXT,
+		VORP TEXT
 	)`
 
 	_, err := db.Exec(createSQLStatement)
@@ -104,6 +108,15 @@ func InsertData(db *sql.DB, filename string) error {
 	}
 	defer nbaCSVFile.Close()
 
+	insertSQLStatement := `INSERT INTO playerstats (
+		Name, Height, Weight, Team, Age, Salary, Points, Blocks, Steals,
+		Assists, Rebounds, FT, FTA, FG3, FG3A, FG, FGA, MP, G,
+		PER, OWS, DWS, WS, WS48, USG, BPM, VORP
+	) VALUES (
+		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+		$15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
+	)`
+
 	reader := csv.NewReader(bufio.NewReader(nbaCSVFile))
 	for {
 		line, err := reader.Read()
@@ -114,22 +127,12 @@ func InsertData(db *sql.DB, filename string) error {
 			return err
 		}
 
-		insertSQLStatement := `INSERT INTO playerstats (
-			Name, Height, Weight, Team, Age, Salary, Points, Blocks, Steals,
-			Assists, Rebounds, FT, FTA, FG3, FG3A, FG, FGA, MP, G,
-			PER, OWS, DWS, WS, WS48, USG, BPM, VORP
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-			$15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
-		) RETURNING id`
-
-		id := 0
-		err = db.QueryRow(insertSQLStatement,
+		_, err = db.Exec(insertSQLStatement,
 			line[0], line[1], line[2], line[3], line[4], line[5], line[6],
 			line[7], line[8], line[9], line[10], line[11], line[12], line[13],
 			line[14], line[15], line[16], line[17], line[18], line[19], line[20],
 			line[21], line[22], line[23], line[24], line[25], line[26],
-		).Scan(&id)
+		)
 		if err != nil {
 			return fmt.Errorf("insert failed: %w", err)
 		}

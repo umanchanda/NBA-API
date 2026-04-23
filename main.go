@@ -24,6 +24,10 @@ func main() {
 		http.ServeFile(w, r, "templates/search.html")
 	})
 
+	r.HandleFunc("/scores/{year}/{month}/{day}", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "templates/boxscores.html")
+	})
+
 	r.HandleFunc("/boxscore/{year}/{month}/{day}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		boxScore, err := teamboxscore.ExtractBoxScore(vars["month"], vars["day"], vars["year"])
@@ -32,6 +36,14 @@ func main() {
 			return
 		}
 		fmt.Fprint(w, boxScore)
+	})
+
+	r.HandleFunc("/teamstats/{year}/{month}/{day}/{awayteam}/{hometeam}", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "templates/teamstats.html")
+	})
+
+	r.HandleFunc("/playerstats/{year}/{month}/{day}/{awayteam}/{hometeam}", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "templates/playerstats.html")
 	})
 
 	r.HandleFunc("/boxscore/{year}/{month}/{day}/{awayteam}/{hometeam}", func(w http.ResponseWriter, r *http.Request) {

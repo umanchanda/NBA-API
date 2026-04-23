@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -98,29 +99,29 @@ func ExtractBoxScore(month, day, year string) (string, error) {
 		table0 := game.Find("table").Eq(0)
 		table1 := game.Find("table").Eq(1)
 
-		losingTeam, _ := table0.Find("tbody .loser td a").Html()
-		losingTeamScore, _ := table0.Find("tbody .loser .right").Html()
-		winningTeam, _ := table0.Find("tbody .winner td a").Html()
-		winningTeamScore, _ := table0.Find("tbody .winner .right").Html()
-		status, _ := doc.Find("tbody .loser .gamelink a").Html()
+		losingTeam := strings.TrimSpace(table0.Find("tbody .loser td a").First().Text())
+		losingTeamScore := strings.TrimSpace(table0.Find("tbody .loser td.right:not(.gamelink)").Text())
+		winningTeam := strings.TrimSpace(table0.Find("tbody .winner td a").First().Text())
+		winningTeamScore := strings.TrimSpace(table0.Find("tbody .winner td.right:not(.gamelink)").Text())
+		status := strings.TrimSpace(game.Find("tbody .loser .gamelink a").Text())
 
-		awayTeam, _ := table1.Find("tbody tr").Eq(0).Find("td a").Html()
-		homeTeam, _ := table1.Find("tbody tr").Eq(1).Find("td a").Html()
+		awayTeam := strings.TrimSpace(table1.Find("tbody tr").Eq(0).Find("td a").First().Text())
+		homeTeam := strings.TrimSpace(table1.Find("tbody tr").Eq(1).Find("td a").First().Text())
 
 		periods := table1.Find("tbody tr").Eq(0).Find(".center")
 		awayScores := make([]string, 0, periods.Length())
 		homeScores := make([]string, 0, periods.Length())
 		for j := range periods.Nodes {
-			awayScore, _ := table1.Find("tbody tr").Eq(0).Find(".center").Eq(j).Html()
-			homeScore, _ := table1.Find("tbody tr").Eq(1).Find(".center").Eq(j).Html()
+			awayScore := strings.TrimSpace(table1.Find("tbody tr").Eq(0).Find(".center").Eq(j).Text())
+			homeScore := strings.TrimSpace(table1.Find("tbody tr").Eq(1).Find(".center").Eq(j).Text())
 			awayScores = append(awayScores, awayScore)
 			homeScores = append(homeScores, homeScore)
 		}
 
 		awayTeamCode := teamCodes[awayTeam]
 		homeTeamCode := teamCodes[homeTeam]
-		scoreBreakdown := "/boxscore/" + year + "/" + month + "/" + day + "/" + awayTeamCode + "/" + homeTeamCode
-		playerBreakdown := scoreBreakdown + "/player"
+		scoreBreakdown := "/teamstats/" + year + "/" + month + "/" + day + "/" + awayTeamCode + "/" + homeTeamCode
+		playerBreakdown := "/playerstats/" + year + "/" + month + "/" + day + "/" + awayTeamCode + "/" + homeTeamCode
 
 		scoresArray = append(scoresArray, TeamBoxScore{
 			LosingTeam:       losingTeam,
