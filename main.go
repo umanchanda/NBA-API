@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,6 +13,8 @@ import (
 	"github.com/umanchanda/NBA-API/playertotals"
 	"github.com/umanchanda/NBA-API/teamboxscore"
 	"github.com/umanchanda/NBA-API/teamtotals"
+
+	"database/sql"
 )
 
 func dbConn() (*sql.DB, error) {
@@ -30,33 +31,39 @@ type PlayerStat struct {
 	Season     string `json:"season"`
 	SeasonType string `json:"season_type"`
 	Name       string `json:"name"`
-	Team   string `json:"team"`
-	Pos    string `json:"pos"`
-	Age    string `json:"age"`
-	G      string `json:"g"`
-	GS     string `json:"gs"`
-	MP     string `json:"mp"`
-	FG     string `json:"fg"`
-	FGA    string `json:"fga"`
-	FGPct  string `json:"fg_pct"`
-	FG3    string `json:"fg3"`
-	FG3A   string `json:"fg3a"`
-	FG3Pct string `json:"fg3_pct"`
-	FT     string `json:"ft"`
-	FTA    string `json:"fta"`
-	FTPct  string `json:"ft_pct"`
-	ORB    string `json:"orb"`
-	DRB    string `json:"drb"`
-	TRB    string `json:"trb"`
-	AST    string `json:"ast"`
-	STL    string `json:"stl"`
-	BLK    string `json:"blk"`
-	TOV    string `json:"tov"`
-	PF     string `json:"pf"`
-	PTS    string `json:"pts"`
+	Team       string `json:"team"`
+	Pos        string `json:"pos"`
+	Age        string `json:"age"`
+	G          string `json:"g"`
+	GS         string `json:"gs"`
+	MP         string `json:"mp"`
+	FG         string `json:"fg"`
+	FGA        string `json:"fga"`
+	FGPct      string `json:"fg_pct"`
+	FG3        string `json:"fg3"`
+	FG3A       string `json:"fg3a"`
+	FG3Pct     string `json:"fg3_pct"`
+	FT         string `json:"ft"`
+	FTA        string `json:"fta"`
+	FTPct      string `json:"ft_pct"`
+	ORB        string `json:"orb"`
+	DRB        string `json:"drb"`
+	TRB        string `json:"trb"`
+	AST        string `json:"ast"`
+	STL        string `json:"stl"`
+	BLK        string `json:"blk"`
+	TOV        string `json:"tov"`
+	PF         string `json:"pf"`
+	PTS        string `json:"pts"`
 }
 
 func main() {
+	db, err := dbConn()
+	if err != nil {
+		log.Fatalf("connecting to database: %v", err)
+	}
+	defer db.Close()
+
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -68,20 +75,13 @@ func main() {
 	})
 
 	r.HandleFunc("/api/player", func(w http.ResponseWriter, r *http.Request) {
-		name       := r.URL.Query().Get("name")
-		season     := r.URL.Query().Get("season")
+		name := r.URL.Query().Get("name")
+		season := r.URL.Query().Get("season")
 		seasonType := r.URL.Query().Get("season_type")
 		if name == "" {
 			http.Error(w, "name is required", http.StatusBadRequest)
 			return
 		}
-
-		db, err := dbConn()
-		if err != nil {
-			http.Error(w, "db connection failed", http.StatusInternalServerError)
-			return
-		}
-		defer db.Close()
 
 		query := `SELECT season, season_type, name, team, pos, age, g, gs, mp,
 			fg, fga, fg_pct, fg3, fg3a, fg3_pct,
@@ -124,7 +124,9 @@ func main() {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(results)
+		if err := json.NewEncoder(w).Encode(results); err != nil {
+			log.Printf("encoding /api/player response: %v", err)
+		}
 	})
 
 	r.HandleFunc("/scores/{year}/{month}/{day}", func(w http.ResponseWriter, r *http.Request) {

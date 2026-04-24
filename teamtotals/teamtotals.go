@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 
 	"github.com/PuerkitoBio/goquery"
+
+	"github.com/umanchanda/NBA-API/internal/fetch"
 )
 
 const baseURL = "https://www.basketball-reference.com"
@@ -41,22 +41,7 @@ type TeamTotalsGame struct {
 	TeamTotals []TeamTotals
 }
 
-func getGameSummaryHTML(month, day, year, homeTeam string) ([]byte, error) {
-	url := baseURL + "/boxscores/" + year + month + day + "0" + homeTeam + ".html"
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("fetching boxscore page: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading response body: %w", err)
-	}
-	return body, nil
-}
-
-// extractTeamTotals builds a TeamTotals from a tfoot selection for one team.
+// extractTeamTotals builds a TeamTotals from a tfoot row selection for one team.
 func extractTeamTotals(sel *goquery.Selection, team string) TeamTotals {
 	td := func(i int) string { return sel.Find("td").Eq(i).Text() }
 	return TeamTotals{
@@ -84,7 +69,8 @@ func extractTeamTotals(sel *goquery.Selection, team string) TeamTotals {
 }
 
 func ExtractGameSummary(month, day, year, awayTeam, homeTeam string) (string, error) {
-	html, err := getGameSummaryHTML(month, day, year, homeTeam)
+	url := baseURL + "/boxscores/" + year + month + day + "0" + homeTeam + ".html"
+	html, err := fetch.HTML(url)
 	if err != nil {
 		return "", err
 	}
@@ -96,7 +82,7 @@ func ExtractGameSummary(month, day, year, awayTeam, homeTeam string) (string, er
 
 	boxScores := []TeamTotals{
 		extractTeamTotals(doc.Find("#box-"+awayTeam+"-game-basic tfoot tr"), awayTeam),
-		extractTeamTotals(doc.Find("#box-"+homeTeam+"-game-basic tfoot"), homeTeam),
+		extractTeamTotals(doc.Find("#box-"+homeTeam+"-game-basic tfoot tr"), homeTeam),
 	}
 
 	result, err := json.Marshal(boxScores)
