@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 
 	"github.com/PuerkitoBio/goquery"
+
+	"github.com/umanchanda/NBA-API/internal/fetch"
 )
 
 const baseURL = "https://www.basketball-reference.com"
@@ -47,21 +47,6 @@ type PlayerTotalsTeam struct {
 // PlayerTotalsGame is the list of all players in a game for both teams
 type PlayerTotalsGame struct {
 	Players []PlayerTotalsTeam `json:"players,omitempty"`
-}
-
-func getGameSummaryHTML(month, day, year, homeTeam string) ([]byte, error) {
-	url := baseURL + "/boxscores/" + year + month + day + "0" + homeTeam + ".html"
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("fetching boxscore page: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading response body: %w", err)
-	}
-	return body, nil
 }
 
 // extractPlayerRow builds a PlayerTotals from a single table row selection.
@@ -111,7 +96,8 @@ func extractTeamPlayers(doc *goquery.Document, team string) PlayerTotalsTeam {
 }
 
 func ExtractPlayerSummary(month, day, year, awayTeam, homeTeam string) (string, error) {
-	html, err := getGameSummaryHTML(month, day, year, homeTeam)
+	url := baseURL + "/boxscores/" + year + month + day + "0" + homeTeam + ".html"
+	html, err := fetch.HTML(url)
 	if err != nil {
 		return "", err
 	}

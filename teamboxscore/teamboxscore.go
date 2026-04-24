@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+
+	"github.com/umanchanda/NBA-API/internal/fetch"
 )
 
 const baseURL = "https://www.basketball-reference.com"
@@ -65,23 +65,9 @@ type AllTeamBoxScore struct {
 	BoxScores []TeamBoxScore `json:"box_scores,omitempty"`
 }
 
-func getBoxScoreHTML(month, day, year string) ([]byte, error) {
-	url := baseURL + "/boxscores/?month=" + month + "&day=" + day + "&year=" + year
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("fetching boxscore page: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading response body: %w", err)
-	}
-	return body, nil
-}
-
 func ExtractBoxScore(month, day, year string) (string, error) {
-	html, err := getBoxScoreHTML(month, day, year)
+	url := baseURL + "/boxscores/?month=" + month + "&day=" + day + "&year=" + year
+	html, err := fetch.HTML(url)
 	if err != nil {
 		return "", err
 	}

@@ -98,7 +98,21 @@ func CreateTable(db *sql.DB) error {
 		pf          TEXT,
 		pts         TEXT
 	)`)
-	return err
+	if err != nil {
+		return err
+	}
+
+	indexes := []string{
+		`CREATE INDEX IF NOT EXISTS idx_playerstats_name ON playerstats (LOWER(name))`,
+		`CREATE INDEX IF NOT EXISTS idx_playerstats_season ON playerstats (season)`,
+		`CREATE INDEX IF NOT EXISTS idx_playerstats_season_type ON playerstats (season_type)`,
+	}
+	for _, idx := range indexes {
+		if _, err := db.Exec(idx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func InsertPlayers(db *sql.DB, players []NBAPlayer) error {
