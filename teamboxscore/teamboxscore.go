@@ -100,10 +100,10 @@ func ExtractBoxScore(month, day, year string) (string, error) {
 		table1 := game.Find("table").Eq(1)
 
 		losingTeam := strings.TrimSpace(table0.Find("tbody .loser td a").First().Text())
-		losingTeamScore := strings.TrimSpace(table0.Find("tbody .loser td.right:not(.gamelink)").Text())
+		losingTeamScore := strings.TrimSpace(table0.Find("tbody .loser td.right:not(.gamelink)").First().Text())
 		winningTeam := strings.TrimSpace(table0.Find("tbody .winner td a").First().Text())
-		winningTeamScore := strings.TrimSpace(table0.Find("tbody .winner td.right:not(.gamelink)").Text())
-		status := strings.TrimSpace(game.Find("tbody .loser .gamelink a").Text())
+		winningTeamScore := strings.TrimSpace(table0.Find("tbody .winner td.right:not(.gamelink)").First().Text())
+		status := strings.TrimSpace(game.Find("tbody .gamelink a").First().Text())
 
 		awayTeam := strings.TrimSpace(table1.Find("tbody tr").Eq(0).Find("td a").First().Text())
 		homeTeam := strings.TrimSpace(table1.Find("tbody tr").Eq(1).Find("td a").First().Text())

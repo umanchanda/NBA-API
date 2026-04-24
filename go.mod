@@ -1,18 +1,14 @@
 module github.com/umanchanda/NBA-API
 
-go 1.14
+go 1.21
 
 require (
+	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/gorilla/mux v1.7.4
-	github.com/umanchanda/NBA-API/database v0.0.0
-	github.com/umanchanda/NBA-API/playertotals v0.0.0-20200428185557-565476734505
-	github.com/umanchanda/NBA-API/teamboxscore v0.0.0-20200428185557-565476734505
-	github.com/umanchanda/NBA-API/teamtotals v0.0.0-20200428185557-565476734505
+	github.com/lib/pq v1.10.9
 )
 
-replace (
-	github.com/umanchanda/NBA-API/database => ./database
-	github.com/umanchanda/NBA-API/playertotals => ./playertotals
-	github.com/umanchanda/NBA-API/teamboxscore => ./teamboxscore
-	github.com/umanchanda/NBA-API/teamtotals => ./teamtotals
+require (
+	github.com/andybalholm/cascadia v1.1.0 // indirect
+	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
 )

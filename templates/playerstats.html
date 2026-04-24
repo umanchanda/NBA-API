@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>NBA Player Stats</title>
+    <title>NBA Box Score</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <style>
         body {
@@ -71,6 +71,12 @@
             color: #ffffff;
             font-weight: 500;
         }
+        .totals-row td {
+            background-color: #0f3460;
+            color: #c9aa71 !important;
+            font-weight: 700 !important;
+            border-top: 2px solid #c9aa71;
+        }
         .team-block {
             background-color: #16213e;
             border-radius: 16px;
@@ -91,7 +97,7 @@
         </div>
         <div class="text-center mb-5">
             <div style="font-size:2rem;">🏀</div>
-            <h1>Player Stats</h1>
+            <h1>Box Score</h1>
             <p class="subtitle" id="matchup-label"></p>
         </div>
 
@@ -109,13 +115,15 @@
         document.getElementById('back-link').href = '/scores/' + year + '/' + month + '/' + day;
         document.getElementById('matchup-label').textContent = away + ' @ ' + home;
 
-        fetch('/boxscore/' + year + '/' + month + '/' + day + '/' + away + '/' + home + '/player')
-            .then(r => r.json())
-            .then(data => {
+        const playerURL = '/boxscore/' + year + '/' + month + '/' + day + '/' + away + '/' + home + '/player';
+        const teamURL   = '/boxscore/' + year + '/' + month + '/' + day + '/' + away + '/' + home;
+
+        Promise.all([fetch(playerURL).then(r => r.json()), fetch(teamURL).then(r => r.json())])
+            .then(([playerData, teamData]) => {
                 document.getElementById('loading').style.display = 'none';
                 const teams = [away, home];
                 document.getElementById('content').innerHTML =
-                    data.map((teamData, i) => renderTeamBlock(teams[i], teamData)).join('');
+                    playerData.map((td, i) => renderTeamBlock(teams[i], td, teamData[i])).join('');
             })
             .catch(err => {
                 document.getElementById('loading').style.display = 'none';
@@ -125,26 +133,26 @@
             });
 
         const cols = [
-            { label: 'MP',   key: 'minutes_played' },
-            { label: 'FG',   key: 'field_goals' },
-            { label: 'FGA',  key: 'field_goals_attempted' },
-            { label: 'FG%',  key: 'field_goal_percentage' },
-            { label: '3P',   key: 'three_point' },
-            { label: '3PA',  key: 'three_point_attempted' },
-            { label: '3P%',  key: 'three_point_percentage' },
-            { label: 'FT',   key: 'free_throws' },
-            { label: 'FTA',  key: 'free_throws_attempted' },
-            { label: 'FT%',  key: 'free_throw_percentage' },
-            { label: 'ORB',  key: 'offensive_rebounds' },
-            { label: 'DRB',  key: 'defensive_rebounds' },
-            { label: 'REB',  key: 'total_rebounds' },
-            { label: 'AST',  key: 'assists' },
-            { label: 'STL',  key: 'steals' },
-            { label: 'BLK',  key: 'blocks' },
-            { label: 'TOV',  key: 'turnovers' },
-            { label: 'PF',   key: 'personal_fouls' },
-            { label: 'PTS',  key: 'points' },
-            { label: '+/-',  key: 'plus_minus' },
+            { label: 'MP',   playerKey: 'minutes_played',        teamKey: 'minutes_played' },
+            { label: 'FG',   playerKey: 'field_goals',           teamKey: 'field_goals' },
+            { label: 'FGA',  playerKey: 'field_goals_attempted',  teamKey: 'field_goals_attempted' },
+            { label: 'FG%',  playerKey: 'field_goal_percentage',  teamKey: 'field_goal_percentage' },
+            { label: '3P',   playerKey: 'three_point',            teamKey: 'three_point' },
+            { label: '3PA',  playerKey: 'three_point_attempted',  teamKey: 'three_point_attempted' },
+            { label: '3P%',  playerKey: 'three_point_percentage', teamKey: 'three_point_percentage' },
+            { label: 'FT',   playerKey: 'free_throws',            teamKey: 'free_throws' },
+            { label: 'FTA',  playerKey: 'free_throws_attempted',  teamKey: 'free_throws_attempted' },
+            { label: 'FT%',  playerKey: 'free_throw_percentage',  teamKey: 'free_throw_percentage' },
+            { label: 'ORB',  playerKey: 'offensive_rebounds',     teamKey: 'offensive_rebounds' },
+            { label: 'DRB',  playerKey: 'defensive_rebounds',     teamKey: 'defensive_rebounds' },
+            { label: 'REB',  playerKey: 'total_rebounds',         teamKey: 'total_rebounds' },
+            { label: 'AST',  playerKey: 'assists',                teamKey: 'assists' },
+            { label: 'STL',  playerKey: 'steals',                 teamKey: 'steals' },
+            { label: 'BLK',  playerKey: 'blocks',                 teamKey: 'blocks' },
+            { label: 'TOV',  playerKey: 'turnovers',              teamKey: 'turnovers' },
+            { label: 'PF',   playerKey: 'personal_fouls',         teamKey: 'personal_fouls' },
+            { label: 'PTS',  playerKey: 'points',                 teamKey: 'points' },
+            { label: '+/-',  playerKey: 'plus_minus',             teamKey: null },
         ];
 
         const header = '<thead><tr><th>Player</th>' +
@@ -154,24 +162,34 @@
         function renderRows(players) {
             return (players || []).map(p =>
                 '<tr><td>' + (p.name || '—') + '</td>' +
-                cols.map(c => '<td>' + (p[c.key] || '—') + '</td>').join('') +
+                cols.map(c => '<td>' + (p[c.playerKey] || '—') + '</td>').join('') +
                 '</tr>'
             ).join('');
         }
 
-        function renderTeamBlock(teamName, teamData) {
+        function renderTotalsRow(totals) {
+            if (!totals) return '';
+            return '<tr class="totals-row"><td>Team Totals</td>' +
+                cols.map(c => '<td>' + (c.teamKey ? (totals[c.teamKey] || '—') : '—') + '</td>').join('') +
+                '</tr>';
+        }
+
+        function renderTeamBlock(teamName, playerData, totals) {
             return `
                 <div class="team-block">
                     <div class="section-title">${teamName}</div>
                     <div class="group-label">Starters</div>
                     <table class="player-table">
                         ${header}
-                        <tbody>${renderRows(teamData.starters)}</tbody>
+                        <tbody>${renderRows(playerData.starters)}</tbody>
                     </table>
                     <div class="group-label">Reserves</div>
                     <table class="player-table">
                         ${header}
-                        <tbody>${renderRows(teamData.reserves)}</tbody>
+                        <tbody>
+                            ${renderRows(playerData.reserves)}
+                            ${renderTotalsRow(totals)}
+                        </tbody>
                     </table>
                 </div>`;
         }

@@ -182,6 +182,8 @@
             });
 
         function renderCard(game) {
+            const overtime = (game.away_quarter_score || []).length > 4;
+            const status = (game.status || '') + (overtime ? ' OT' : '');
             const awayIsWinner = game.winning_team !== game.home_team;
             const awayTeam  = awayIsWinner ? game.winning_team : game.losing_team;
             const homeTeam  = game.home_team;
@@ -206,8 +208,7 @@
                 </table>` : '';
 
             const links = [];
-            if (game.score_breakdown)  links.push('<a href="' + game.score_breakdown  + '">Team stats &rarr;</a>');
-            if (game.player_breakdown) links.push('<a href="' + game.player_breakdown + '">Player stats &rarr;</a>');
+            if (game.player_breakdown) links.push('<a href="' + game.player_breakdown + '">Box Score &rarr;</a>');
             const linksHtml = links.length ? '<div class="card-links">' + links.join('') + '</div>' : '';
 
             return `
@@ -215,7 +216,7 @@
                     <div class="game-card card h-100">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <span>Away vs Home</span>
-                            <span>${game.status || ''}</span>
+                            <span>${status}</span>
                         </div>
                         <div class="card-body">
                             <div class="team-row">
