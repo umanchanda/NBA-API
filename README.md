@@ -1,36 +1,74 @@
-# NBA-API
+# NBA API
 
-To get started:
+A Go web application for browsing NBA box scores and player season stats.
 
-1. `go get github.com/umanchanda/NBA-API`
+Live at: https://uman230-nba-api-2a9531748263.herokuapp.com
 
-2. run: `go run ${GOPATH}/src/github.com/umanchanda/NBA-API/main.go` in your terminal
+---
 
-3. Head to `localhost:8000` in your browser
+## How it works
 
-To run as a Docker build:
+The app has two main features:
 
-1. Clone the repo
+### 1. Box Scores (scraped live from basketball-reference.com)
 
-2. `docker build -t nba .`
+Select a date on the home page to see all games played that day. Each game card shows the final score, quarter-by-quarter breakdown, and a link to the full box score.
 
-3. `docker run -p 8000:8000 nba`
+The full box score page shows each team's starters and reserves with per-game stats, plus a team totals row at the bottom.
 
-4. Head to `localhost:8000` in your browser
+**Routes:**
 
-How to use this repo:
+| Route | Description |
+|---|---|
+| `/scores/{year}/{month}/{day}` | All games for a given date |
+| `/playerstats/{year}/{month}/{day}/{away}/{home}` | Full box score for a specific game |
 
-To view all the boxscores for a given date, head over to `/boxscore/${year}/${month}/${date}`
+Team codes are the standard three-letter abbreviations (e.g. `NYK`, `LAL`, `GSW`).
 
-To view team totals for a given game, head over to `/boxscore/${year}/${month}/${date}/${awayTeam}/${homeTeam}`
-Note that `awayTeam` and `homeTeam` must be the three letter code for the team
-So, for example, the `New York Knicks` are `NYK`, the `Cleveland Cavaliers`, are `CLE`, and so on so forth
+**Example:** Box score for the last day of the 2019-20 season before the COVID shutdown:
+```
+/scores/2020/03/11
+```
 
-To view player box scores for a given game, head over to `/boxscore/${year}/${month}/${date}/${awayTeam}/${homeTeam}/player`
-Same caveats apply
+### 2. Player Season Stats (served from a Neon PostgreSQL database)
 
-For example, if I wanted to view the boxscores for March 11th, 2020 (coicidentally the last day there were NBA games before the league shut the season down), I would head to `localhost:8000/boxscore/2020/03/11`
+Search for any player by name and optionally filter by season (year) and season type (Regular Season or Playoffs). Results show full season totals scraped from basketball-reference.com.
 
-If I wanted to check out the team boxscore for the Dallas v. Denver game, I would header over to `localhost:8000/boxscore/2020/03/11/DEN/DAL`
+**Route:** `/searchPlayer`
 
-If I wanted to check out the player boxscore for that game, I would head over to `localhost:8000/boxscore/2020/03/11/DEN/DAL/player`
+---
+
+## Running locally
+
+```
+git clone https://github.com/umanchanda/NBA-API
+cd NBA-API
+go mod tidy
+go run .
+```
+
+Then open `http://localhost:8000`.
+
+---
+
+## Seeding the database
+
+The player stats database is populated by scraping basketball-reference season totals pages. To seed all seasons from 1999-2000 to the current season:
+
+```
+export DATABASE_URL="postgres://..."
+cd cmd/seed
+go mod tidy
+go run .
+```
+
+The seed command skips seasons already in the database, so it is safe to re-run.
+
+---
+
+## Environment variables
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `PORT` | HTTP port (defaults to `8000`) |
