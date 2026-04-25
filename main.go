@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 
+	"github.com/umanchanda/NBA-API/espn"
 	"github.com/umanchanda/NBA-API/playertotals"
 	"github.com/umanchanda/NBA-API/teamboxscore"
 	"github.com/umanchanda/NBA-API/teamtotals"
@@ -127,6 +128,21 @@ func main() {
 		if err := json.NewEncoder(w).Encode(results); err != nil {
 			log.Printf("encoding /api/player response: %v", err)
 		}
+	})
+
+	r.HandleFunc("/today", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "templates/today.html")
+	})
+
+	r.HandleFunc("/api/scoreboard", func(w http.ResponseWriter, r *http.Request) {
+		date := r.URL.Query().Get("date")
+		scoreboard, err := espn.FetchScoreboard(date)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, scoreboard)
 	})
 
 	r.HandleFunc("/scores/{year}/{month}/{day}", func(w http.ResponseWriter, r *http.Request) {
