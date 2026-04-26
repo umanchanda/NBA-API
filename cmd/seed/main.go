@@ -9,7 +9,7 @@ import (
 	"github.com/umanchanda/NBA-API/database"
 )
 
-const firstSeason = 2000
+const firstSeason = 1990
 
 func seedType(db *sql.DB, year int, seasonType string) {
 	season := fmt.Sprintf("%d", year)

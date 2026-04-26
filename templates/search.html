@@ -170,7 +170,7 @@
             seasonSelect.appendChild(allOpt);
 
             const currentYear = new Date().getFullYear() + 1;
-            for (let y = currentYear; y >= 2000; y--) {
+            for (let y = currentYear; y >= 1990; y--) {
                 const opt = document.createElement("option");
                 opt.value = y;
                 opt.textContent = (y - 1) + "-" + String(y).slice(2).padStart(2, "0");
