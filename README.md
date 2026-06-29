@@ -8,7 +8,7 @@ Live at: https://uman230-nba-api-2a9531748263.herokuapp.com
 
 ## How it works
 
-The app has two main features:
+The app has two main features: 
 
 ### 1. Box Scores (scraped live from basketball-reference.com)
 
